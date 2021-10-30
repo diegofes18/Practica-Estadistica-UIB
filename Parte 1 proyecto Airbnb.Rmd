@@ -1,0 +1,454 @@
+---
+title: "Airbnb San Diego"
+author: "Diego Bermejo, Cristian Cardona, Ruben Ballesteros, Victor Canelo"
+date: "26/4/2021"
+output:
+  html_document:
+    toc: yes
+    df_print: paged
+  pdf_document:
+    toc: yes
+    number_sections: yes
+---
+
+# Practica Airbnb San Diego
+
+En esta práctica tenemos como objetivo tratar los datos del archivo de la página
+de Airbnb de la ciudad de San Diego, en este archivo se encuentran datos de todo
+tipo.
+
+```{r setup,echo=FALSE} 
+library(readxl)
+library(readr)
+library(tidyverse)
+knitr::opts_chunk$set(echo = TRUE,cache=TRUE)
+```
+
+
+## Pregunta 1
+ 
+En esta pregunta nos pedían cargar todos los datos del documento "listings.csv". 
+También nos pedían la selección de 10 variables para crear un dataframe con 
+ellas. Para eliminar los símbolos '$' y ',' hemos utilizado el comando gsub y 
+para transformar la columna en numérica hemos utilizado as.numeric
+
+```{r}
+listings <- read_csv("listings.csv" )
+seleccion=c(27,30,32,33,34,37,38,40,41,42)
+listings2=listings[,seleccion]
+listings2$price=as.numeric(gsub(pattern="[\\$]|[,]",
+                                replacement="",listings2$price))
+
+listings3<- read_csv("NewYork.csv" )
+listings3$price=as.numeric(gsub(pattern="[\\$]|[,]",
+                                replacement="",listings3$price))
+
+```
+
+
+## Pregunta 2
+
+En esta pregunta nos pedía la traducción de las variables que 
+habíamos seleccionado, y estas son: el vecindario,la latitud,el tipo de 
+propiedad,el tipo de habitación, la capacidad,el numero de habitaciones,
+las camas,el precio,las noches mínimas,las noches máximas.
+El cambio de nombre ha sido posible gracias a la función names.
+
+```{r}
+names(listings2)=c("Vecindario", "Latitud",
+"Tipo_De_Propiedad","Tipo_De_Habitacion","Capacidad",
+"Habitaciones","Camas","Precio","Noches_Minimas",
+"Noches_Maximas")
+str(listings2)
+
+```
+
+## Pregunta 3
+
+En esta pregunta nos pedían que para las variables numéricas, calcularamos  
+en una tabla los siguiente valores: mínimo, máximo, media, varianza, cuartiles 
+y la mediana.
+
+```{r}
+estadisticos=function(x) c(A=min(x,na.rm=TRUE),B=max(x,na.rm=TRUE),
+                           C=mean(x,na.rm=TRUE),D=var(x,na.rm=TRUE),
+                           F=ifelse(is.na(table(is.na(x))[2]),0,
+                                    table(is.na(x))[2]),
+                           Q1=quantile(x,0.25,na.rm=TRUE),
+                           Q2=quantile(x,0.50,na.rm=TRUE),
+                           Q3=quantile(x,0.75,na.rm=TRUE))
+#aggregate
+salida=apply(listings2[,c( "Latitud","Capacidad",
+"Habitaciones","Camas","Precio","Noches_Minimas",
+"Noches_Maximas")],MARGIN=2,FUN=estadisticos)
+rownames(salida)=c("Mínimo","Máximo","Media","Varianza","Na","Q1","Q2","Q3")
+knitr::kable(salida,digits = 2)
+
+```
+
+## Pregunta 4
+
+En esta pregunta nos pedían que para las variables no numéricas,creáramos   
+tablas de frecuencias absolutas de cada uno de sus valores.
+Para ello hemos utilizado la función table y hemos visualizado los 10 valores
+más altos.
+
+```{r}
+sort(table(listings2$Vecindario),decreasing = TRUE)[1:10]
+sort(table(listings2$Tipo_De_Propiedad),decreasing = TRUE)[1:10]
+sort(table(listings2$Tipo_De_Habitacion),decreasing = TRUE)[1:10]
+```
+
+## Pregunta 5
+
+En esta pregunta nos pedían dibujar boxplots e histogramas de todas las 
+variables numéricas.
+Para conseguir cumplir las condiciones del enunciado, hemos utilizado la función
+hist para conseguir los histogramas y para conseguir los boxplots 
+hemos usado la función "boxplot" y para conseguir el numero de boxplots por  
+filas hemos utilizado el comando: par(mfrow=c()).
+
+```{r}
+par(mfrow=c(2,4))
+hist(listings2$Capacidad,col="cyan")
+hist(listings2$Habitaciones,col = "aquamarine2")
+hist(listings2$Precio,col = "bisque")
+hist(listings2$Camas,col = "azure")
+hist(listings2$Noches_Minimas,col = "antiquewhite")
+hist(listings2$Noches_Maximas,col="black")
+hist(listings2$Latitud,col="violet")
+par(mfrow=c(1,1))
+par(mfrow=c(2,4))
+boxplot(x=(listings2$Camas),main= "Tabla de camas",ylab="Numero de camas",
+        col="purple")
+boxplot(x=(listings2$Habitaciones),
+        main= "Tabla de habitaciones",
+        ylab="Numero de habitaciones",col="turquoise")
+boxplot(x=(listings2$Capacidad),main= "Tabla de Capacidad",
+        ylab="Capacidades",col = "violet")
+boxplot(x=(listings2$Precio),main= "Tabla de precio",
+        ylab="Cantidad a pagar",col="magenta")
+boxplot(x=(listings2$Noches_Minimas),main= "Tabla de Noches Minimas",
+        ylab="Noches Minimas",col="beige")
+boxplot(x=(listings2$Noches_Maximas),main= "Tabla de Noches Maximas",
+        ylab="Noches Maximas",col="gold")
+boxplot(x=(listings2$Latitud),main= "Tabla de latitudes",
+        ylab="Latitud",col="brown")
+par(mfrow=c(1,1))
+```
+
+## Pregunta 6
+
+En este apartado hemos dibujado un diagrama de tarta para una de las variables
+no numéricas, en este caso nosotros hemos escogido el tipo de habitación.
+agrupando como “Otros” los valores que representen un porcentaje inferior 
+al 1% del total.
+
+```{r}
+frec=c(listings2$Tipo_De_Habitacion)
+aux=prop.table(table(frec))
+aux
+otros=names(aux)[which(aux<=0.1)]
+otros
+frec[frec%in% otros]="Otros"
+prop.table(table(frec))
+pie(prop.table(table(frec)),
+    radius=1,main="Diagrama de tartas de tipo de habitaciones",
+    col=rainbow(n=3))
+
+ legend("topright", 
+     c("Entire home/apt","Otros","Private room"), cex = 0.8,
+     fill = rainbow(n=3))
+```
+
+## Pregunta 7
+
+En este apartado se nos pedía calcular el valor medio de alguna de las variables 
+numéricas según el barrio. Nosotros en este apartado hemos elegido las 
+variables: habitaciones y el precio.
+Para calcular el valor medio hemos utilizado el na.omit para evitar que los 
+valores NA entren a la hora de hacerlo y con la función mean obtenemos el 
+resultado.
+
+```{r}
+data2=data.frame(Precio=listings2$Precio,Barrio=listings2$Vecindario)
+class(data2$Barrio)
+data2=data2[ data2$Barrio != "" | data2$Barrio != "N/A",]
+tabla_precios_barrio=aggregate(data2$Precio~data2$Barrio,
+                               FUN=mean, na.action = na.omit )
+names(tabla_precios_barrio)=c("Barrio","Precio de medio de Euros")
+knitr::kable(tabla_precios_barrio,digits=2)
+
+data3=data.frame(Habitaciones=listings2$Habitaciones,
+                 Barrio=listings2$Vecindario)
+class(data3$Barrio)
+data3=data3[ data3$Barrio != "" | data3$Barrio != "N/A",]
+tabla_habitaciones_barrio=aggregate(data3$Habitaciones~data3$Barrio,
+                                    FUN=mean, na.action = na.omit )
+names(tabla_habitaciones_barrio)=c("Barrio","Numero de Habitaciones")
+knitr::kable(tabla_habitaciones_barrio,digits=2)
+```
+
+## Pregunta 8
+
+Atendiendo a la cuestión que nos proponen, hemos dibujado un boxplot para los 5 
+barrios más caros y los 5 barrios  más baratos, teniendo en cuenta que los 
+boxplots debían indicar el valor medio de los datos. En este apartado hemos
+utilizado funciones como: aggregate, mean, boxplot y head.
+
+```{r}
+tabla_precios_medios=aggregate(Precio~Vecindario,data=listings2,FUN=function(x) 
+  mean(x,na.rm=TRUE))
+tabla_precios_medios=na.omit(tabla_precios_medios[order(
+  tabla_precios_medios$Precio),])
+
+cinco_baratos=tabla_precios_medios$Vecindario[1:5]
+n=dim(tabla_precios_medios)[1]
+n
+cinco_caros=tabla_precios_medios$Vecindario[(n-4):n]
+cinco_baratos
+cinco_caros
+dos_precios=na.omit(listings2[listings2$Vecindario %in% c(cinco_baratos,cinco_caros),c("Precio","Vecindario")])
+
+```
+```{r}
+dos_precios$caro=factor(dos_precios$Vecindario %in% cinco_caros,
+                        labels = c("Barato","Caro"))
+head(dos_precios,10)
+boxplot(dos_precios$Precio~dos_precios$caro,col="orange")
+```
+
+## Pregunta 9
+
+En este apartado se nos plantea el siguiente enunciado:dibujar diagramas de 
+dispersión para 4 de las variables numéricas con colores diferentes para cada
+barrio.Para ello hemos utilizado la función plot y para cumplir las condiciones 
+que nos piden hemos utilizado par(mfrow=c())
+
+```{r}
+n=length(unique(listings2$Vecindario))
+n# numero zonas
+par(mfrow=c(3,2))
+plot(listings2$Precio,listings2$Noches_Minimas,
+     main = "Diagrama Noches Minimas ",
+      pch = 21, bg = rainbow(n)[factor(listings2$Vecindario)],
+     xlab="Vecindario",ylab="Numero de Noches Minimas")
+
+plot(listings2$Precio,listings2$Noches_Maximas, main = "Noches Maximas ",
+        pch = 21, bg = rainbow(n)[factor(listings2$Vecindario)],
+     xlab="Vecindario",ylab="Numero de Noches Maximas")
+plot(listings2$Precio,listings2$Habitaciones, main = "Habitaciones ",
+      pch = 21, bg = rainbow(n)[factor(listings2$Vecindario)],
+     xlab="Vecindario",ylab="Numero de Habitaciones")
+
+plot(listings2$Precio,listings2$Camas, main = "Camas ",
+      pch = 21, bg = rainbow(n)[factor(listings2$Vecindario)],
+     xlab="Vecindario",ylab="Numero de Camas")
+par(mfrow=c(1,1))
+```
+
+## Pregunta 10
+
+En este apartado nos piden calcular los coeficientes de correlación de las 
+variables del apartado anterior sin tener en cuenta los valores NA. Nosotros
+al escoger la mayoría de variables de manera voluntaria, hemos escogido para 
+este ejercicio la latitud, las habitaciones, el precio y las camas .
+Para realizar esta pregunta hemos utilizado la función cor  y hemos 
+saltado los valores mediante el comando use="na.or.complete".
+
+```{r}
+cor(listings2$Latitud,listings2$Habitaciones,use="na.or.complete")
+cor(listings2$Precio,listings2$Camas,use="na.or.complete")
+```
+
+## Pregunta 11
+
+Para esta pregunta teníamos que seleccionar dos variables numéricas y utilizando
+la función cut  organizar los valores en intervalos de 5
+En este apartado realizamos un cut de listings2de la columna precio y le 
+introducimos los valores de la columna precio, le atribuimos el nombre de
+IntervaloPrecio5 y realizamos la tabla.Este mismo procedimiento lo hacemos
+con la variable Capacidad, pero en lugar de hacer el cut de listings2 lo hacemos 
+de capacidad2.
+
+```{r}
+IntervaloPrecios5<-cut(listings2$Precio,breaks=c(0,100,200,300,Inf))
+str(IntervaloPrecios5)
+table(IntervaloPrecios5)
+IntervaloCapacidad5<-cut(listings2$Capacidad,breaks=c(1,2,3,4,10,Inf))
+str(IntervaloCapacidad5)
+table(IntervaloCapacidad5)
+barplot(sort(table(IntervaloPrecios5)),col="red")
+barplot(sort(table(IntervaloCapacidad5)),col="blue")
+```
+
+## Pregunta 12
+
+En esta pregunta se nos pide que creemos una tabla de contingencia con las 
+variables anteriores y dibujar un diagrama de mosaico.
+Para realizar este apartado hemos utilizado la función table con las variables
+IntervaloPrecio5 e IntervaloCapacidad5 calculados el apartado anterior, y para
+conseguir el gráfico, hemos hecho uso de la función mosaicplot y hemos 
+introducido la variable tabla_mosaico
+
+```{r}
+tabla_mosaico=table(IntervaloPrecios5,IntervaloCapacidad5)
+tabla_mosaico
+mosaicplot(tabla_mosaico,color="green",las = 0.5,off=5)
+```
+
+## Parte 2
+
+## Pregunta 1
+
+En esta pregunta se nos pide que calculemos el estimador de la media muestral y
+el error estandar.
+
+```{r}
+
+media_del_precio=mean(listings2$Precio,na.rm = TRUE)
+media_del_precio
+sd_del_precio=sd(listings2$Precio,na.rm = TRUE)
+sd_del_precio
+n= length(listings2$Precio)
+error_estandar= sd_del_precio/sqrt(n)
+error_estandar
+
+```
+
+## Pregunta 2
+
+En esta pregunta se nos pide calcular el intervalo de confianza al 95% de la 
+variable precio de nuestro dataframe.
+
+```{r}
+
+t.test(listings2$Precio,conf.level = 0.95)
+
+```
+Para resolución de este apartado hemos utilizado el t.test de la variable Precio del dataframe listings2. Cómo el estadístico de contraste t=46.467 no se encuentra entre los valores (225.8666,245.7625) tenemos evidencias suficientes para rechazar la hipotesis nula,H0.
+
+## Pregunta 3
+
+En esta pregunta se nos pide calcular un intervalo de confianza al 99%,
+para la proporción de viviendas que tienen un review_scores_rating inferior 
+a 95%.
+
+```{r}
+
+head(listings$review_scores_rating)
+q75=quantile(listings$review_scores_rating,0.75,na.rm = TRUE)
+review98=listings$review_scores_rating<q75
+phat=prop.table(table(review98))[2]
+
+
+```
+```{r}
+
+names(phat)=NULL
+phat
+ni=length(review98)
+ni
+alpha=1-0.99
+alpha
+zq=1-alpha/2
+zq
+qnt=qnorm(zq)
+qnt
+error=sqrt(phat*(1-phat)/ni)
+error
+c(phat-zq*error,phat+zq*error)
+
+```
+Una vez hemos calculado el intervalo, vemos que los valores extremos están entre: 0.6511650,0.6609745.
+ 
+## Pregunta 4
+
+En esta pregunta se nos pide que supongamos que un responsable de Airbnb 
+asegura que la media de los valores de review_scores_rating
+de las viviendas de su portal es superior a 95. Contrastad esta hipótesis.
+
+```{r}
+
+t.test(listings$review_scores_rating,mu=95,alternative = "less")->sol.test
+sol.test
+
+```
+## Pregunta 5
+
+En esta pregunta se nos pide calcular el intervalo de confianza,del 95%
+asociado al contraste del ejercicio anterior.
+
+```{r}
+
+sol.test$conf.int
+
+```
+Para resolución de este apartado hemos visualizado la variable sol.test que era el vector  guardado del ejercicio anterior. Cómo el estadístico de contraste t=1.8173 se encuentra entre los valores (-inf,95.28794) tenemos evidencias suficientes para no rechazar la hipotesis nula,H0.
+
+## Pregunta 6
+
+En esta pregunta se nos pide hagamos un contraste de hipótesis para decidir
+si las desviaciones típicas de los precios de las dos ciudades son iguales o
+diferentes.
+
+```{r}
+
+var.test(listings2$Precio,listings3$price)
+
+```
+Para resolución de este apartado hemos utilizado un var.test de las variables Precio del dataframe listings2 y la variable price del dataframe listings3. Cómo el p-valor es practicamente 0  y por lo tanto,menor que 0.05, tenemos evidencias suficientes para rechazar la hipotesis nula,H0.
+
+## Pregunta 7
+
+En esta pregunta nos preguntaba que a partir de los resultados del apartado anterior contratad la hipótesis de que los precios medios en las
+dos ciudades son iguales.
+
+```{r}
+
+SANDIEGO<-listings2$Precio
+NY<-listings3$price
+t.test(x=SANDIEGO,y=NY)
+sd(SANDIEGO)^2/sd(NY)^2
+
+```
+Para resolución de este apartado hemos utilizado un t.test de las variables Precio del dataframe listings2 y la variable price del dataframe listings3. Cómo el p-valor es practicamente 0  y por lo tanto,menor que 0.05, tenemos evidencias suficientes para rechazar la hipotesis nula,H0.
+
+## Pregunta 8
+
+En esta pregunta se nos pide hagamos un contraste de hipótesis para decidir
+si las desviaciones típicas de los precios de las dos ciudades son iguales o
+diferentes.
+
+```{r}
+
+nortest::lillie.test(listings3$price)
+
+```
+Para resolución de este apartado hemos utilizado un lillie.test de la variable price del dataframe listings3. Cómo el p-valor es practicamente 0  y por lo tanto,menor que 0.05, tenemos evidencias suficientes para rechazar la hipotesis nula,H0.
+
+# Pregunta 9
+
+En esta pregunta se nos pide que analicemos la dependencia entre las variables 
+Price y review_scores_rating de la ciudad que tiene asignada.
+
+```{r}
+
+breaks_1=c(min(listings2$Precio),quantile(listings2$Precio,c(0.25,0.5,0.75)),
+           max(listings2$Precio))
+breaks_1
+breaks_2=fivenum(listings$review_scores_rating)
+breaks_2
+clases_price=cut(listings2$Precio,breaks=breaks_1)
+head(clases_price)
+levels(clases_price)
+clases_score=cut(listings$review_scores_rating,breaks=breaks_2)
+head(clases_score)
+levels(clases_score)
+tabla=table(clases_price,clases_score)
+tabla
+chisq.test(x=clases_price,y=clases_score)
+
+```
+Para resolución de este apartado hemos utilizado un chisq.test de las variable Precio y la variable score ratings del dataframe listings3. Cómo el p-valor es practicamente 0  y por lo tanto,menor que 0.05, tenemos evidencias suficientes para rechazar la hipotesis nula,H0.Los valores de las dos poblaciones son dependientes.
+
